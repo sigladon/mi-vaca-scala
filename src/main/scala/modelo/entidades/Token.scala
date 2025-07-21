@@ -1,5 +1,8 @@
 package modelo.entidades
 
-case class Token {
+import java.io.Serializable
 
-}
+case class Token(
+  uuid: String,
+  idUsuario: Int
+) extends Serializable
