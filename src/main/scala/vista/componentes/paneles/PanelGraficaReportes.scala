@@ -172,7 +172,8 @@ class PanelGraficaReportes(
         new DateTickUnit(DateTickUnitType.DAY, 1)
 
       case "semana" =>
-        new DateTickUnit(DateTickUnitType.DAY, 1)
+        // Ya probé con 1, con 2, con 7. Pero simplemente esto no se alinea... Me rindo :|
+        new DateTickUnit(DateTickUnitType.DAY, 2)
 
       case "mes" =>
         val unit = new DateTickUnit(DateTickUnitType.MONTH, 1)
