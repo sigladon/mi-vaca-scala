@@ -9,11 +9,29 @@ import javax.swing.JOptionPane
 
 class CMetas(private val panelMetas: PanelMetas, private var usuario: Usuario) {
 
+  private def actualizarUsuarioEnListaYGuardar(): Unit = {
+    val usuarios = GestorDatos.cargarUsuarios()
+    val usuariosActualizados = usuarios.map(u => if (u.id == usuario.id) usuario else u)
+    GestorDatos.guardarUsuarios(usuariosActualizados)
+  }
+
   private def finalizarOperacionMeta(mensaje: String): Unit = {
     GestorDatos.guardarMetas(usuario.metas)
-    GestorDatos.guardarUsuario(usuario)
+    actualizarUsuarioEnListaYGuardar()
     panelMetas.mostrarMetas(usuario.metas, usuario.movimientos)
     Utilidades.mostrarExito(mensaje)
+  }
+
+  private def actualizarMetasCompletadas(): Unit = {
+    val metasActualizadas = usuario.metas.map { meta =>
+      val balance = Utilidades.balanceHastaFechaLimite(meta, usuario.movimientos)
+      val progreso = if (meta.montoObjetivo > 0) balance / meta.montoObjetivo * 100 else 0
+      if (progreso >= 100 && meta.estaActivo) meta.copy(estaActivo = false) else meta
+    }
+    if (metasActualizadas != usuario.metas) {
+      usuario = usuario.copy(metas = metasActualizadas)
+      actualizarUsuarioEnListaYGuardar()
+    }
   }
 
   def agregarMeta(nombre: String, descripcion: String, montoObjetivo: Double, fechaLimite: LocalDate): Boolean = {
@@ -129,6 +147,7 @@ class CMetas(private val panelMetas: PanelMetas, private var usuario: Usuario) {
 
   def actualizarUsuario(nuevoUsuario: Usuario): Unit = {
     usuario = nuevoUsuario
+    actualizarMetasCompletadas()
     panelMetas.mostrarMetas(usuario.metas, usuario.movimientos)
   }
 } 

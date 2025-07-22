@@ -7,6 +7,7 @@ import vista.componentes.paneles._
 import vista.ventanas.{LoginUI, RegistrarseUI, VentanaPrincipalUI}
 
 import javax.swing._
+import vista.componentes.paneles.PanelMetas
 
 object ControladorPrincipal {
 
@@ -106,18 +107,18 @@ object ControladorPrincipal {
         val token = GestorDatos.cargarToken()
         if (token != null) {
           val idUsuario = token.idUsuario
-          val usuarioData = GestorDatos.cargarUsuario()
-          println(s"[DEBUG] mostrarVistaBienvenida: usuarioData = $usuarioData, idUsuario (token) = $idUsuario")
-          if (usuarioData != null) println(s"[DEBUG] usuarioData.id = ${usuarioData.id}")
-          if (usuarioData != null && usuarioData.id == idUsuario) {
-            usuario = Some(usuarioData)
-            val panelBienvenida = new PanelBienvenida(usuarioData)
-            panelBienvenida.actualizarDatos(usuarioData.movimientos, usuarioData.presupuestos)
-            cambiarVistaCentral(panelBienvenida)
-            vista.foreach(_.setTituloVentana(s"$nombrePrograma - Bienvenida"))
-          } else {
-            println("[DEBUG] No coincide usuarioData.id con idUsuario o usuarioData es null, mostrando login")
-            mostrarVistaLogin()
+          val usuarioDataOpt = GestorDatos.cargarUsuarios().find(_.id == idUsuario)
+          println(s"[DEBUG] mostrarVistaBienvenida: usuarioDataOpt = $usuarioDataOpt, idUsuario (token) = $idUsuario")
+          usuarioDataOpt match {
+            case Some(usuarioData) =>
+              usuario = Some(usuarioData)
+              val panelBienvenida = new PanelBienvenida(usuarioData)
+              panelBienvenida.actualizarDatos(usuarioData.movimientos, usuarioData.presupuestos)
+              cambiarVistaCentral(panelBienvenida)
+              vista.foreach(_.setTituloVentana(s"$nombrePrograma - Bienvenida"))
+            case None =>
+              println("[DEBUG] No coincide usuarioData.id con idUsuario o usuarioData es null, mostrando login")
+              mostrarVistaLogin()
           }
         } else {
           println("[DEBUG] No hay token, mostrando login")
@@ -512,14 +513,17 @@ object ControladorPrincipal {
     def mostrarVistaEficiencia(): Unit = {
       vista.foreach(_.mostrarBarraMenuToolbar())
       usuario.foreach { user =>
-        cEficiencia = inicializarOActualizar(cEficiencia, new CEficiencia(user), (c: CEficiencia) => c.actualizarUsuario(user))
-        
+        // Actualizar metas completadas antes de calcular eficiencia
+        val cMetasTemp = new CMetas(new PanelMetas(), user)
+        cMetasTemp.actualizarUsuario(user)
+        val usuarioActualizado = cMetasTemp.obtenerUsuario
+        //
+        cEficiencia = inicializarOActualizar(cEficiencia, new CEficiencia(usuarioActualizado), (c: CEficiencia) => c.actualizarUsuario(usuarioActualizado))
         val panelEficiencia = new PanelEficiencia()
         panelEficiencia.setSolicitarActualizarEficiencia(() => {
           val metricas = cEficiencia.get.generarReporteEficiencia()
           panelEficiencia.mostrarEficiencia(metricas)
         })
-        
         cambiarVistaCentral(panelEficiencia)
         vista.foreach(_.setTituloVentana(s"$nombrePrograma - Eficiencia Financiera"))
       }

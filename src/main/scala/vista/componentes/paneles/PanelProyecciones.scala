@@ -111,7 +111,7 @@ class PanelProyecciones extends JPanel {
     ))
     
 
-    val probabilidadFormateada = "%.0f".format(analisis.probabilidadObjetivos * 100) + "%"
+    val probabilidadFormateada = if (analisis.probabilidadObjetivos < 0) "N/A" else "%.0f".format(analisis.probabilidadObjetivos * 100) + "%"
     panelGrid.add(crearTarjetaResumen(
       "🎯 Probabilidad de Objetivos",
       probabilidadFormateada,
@@ -473,6 +473,7 @@ class PanelProyecciones extends JPanel {
   }
   
   private def obtenerColorProbabilidad(probabilidad: Double): Color = {
+    if (probabilidad < 0) return Color.GRAY
     probabilidad match {
       case p if p >= 0.8 => new Color(0x40a02b)
       case p if p >= 0.5 => new Color(0xdf8e1d)

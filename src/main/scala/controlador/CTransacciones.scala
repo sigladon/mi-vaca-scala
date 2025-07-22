@@ -39,7 +39,7 @@ class CTransacciones(private val panelTransacciones: PanelTransacciones, private
 
 
       GestorDatos.guardarMovimientos(usuario.movimientos)
-      GestorDatos.guardarUsuario(usuario)
+      actualizarUsuarioEnListaYGuardar()
 
 
       categoria.foreach(cat => verificarPresupuestos(cat, Math.abs(monto)))
@@ -78,9 +78,15 @@ class CTransacciones(private val panelTransacciones: PanelTransacciones, private
     }
   }
 
+  private def actualizarUsuarioEnListaYGuardar(): Unit = {
+    val usuarios = GestorDatos.cargarUsuarios()
+    val usuariosActualizados = usuarios.map(u => if (u.id == usuario.id) usuario else u)
+    GestorDatos.guardarUsuarios(usuariosActualizados)
+  }
+
   private def finalizarOperacionTransaccion(mensaje: String): Unit = {
     GestorDatos.guardarMovimientos(usuario.movimientos)
-    GestorDatos.guardarUsuario(usuario)
+    actualizarUsuarioEnListaYGuardar()
     panelTransacciones.mostrarTransacciones(usuario.movimientos)
     JOptionPane.showMessageDialog(null, mensaje, "Éxito", JOptionPane.INFORMATION_MESSAGE)
   }

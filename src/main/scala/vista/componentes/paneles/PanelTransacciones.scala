@@ -285,4 +285,7 @@ class PanelTransacciones extends JPanel {
     val meses = ("Todos" :: transaccionesOriginales.map(_.fechaTransaccion.getMonth.toString).distinct.sorted).toArray
     comboMes.setModel(new DefaultComboBoxModel[String](meses))
   }
+
+  btnFiltrar.addActionListener(_ => aplicarFiltros())
+  btnLimpiar.addActionListener(_ => limpiarFiltros())
 } 

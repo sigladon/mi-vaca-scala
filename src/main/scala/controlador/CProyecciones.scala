@@ -204,7 +204,44 @@ class CProyecciones {
     if (ahorroPromedio <= 0) return 0.0
     val ahorroNecesario = montoRestante / mesesRestantes
     val ratio = ahorroPromedio / ahorroNecesario
-    min(1.0, max(0.0, ratio))
+
+    // --- Mejoras ---
+    // 1. Variabilidad del ahorro
+    val movimientosPorMes = movimientos.groupBy(m => java.time.YearMonth.from(m.fechaTransaccion))
+    val ahorrosMensuales = movimientosPorMes.map { case (_, movs) =>
+      val (ingresos, gastos, _) = Utilidades.calcularIngresosGastosAhorro(movs)
+      ingresos - gastos
+    }.toList
+    val desviacion = if (ahorrosMensuales.size > 1) {
+      val media = ahorrosMensuales.sum / ahorrosMensuales.size
+      math.sqrt(ahorrosMensuales.map(a => math.pow(a - media, 2)).sum / (ahorrosMensuales.size - 1))
+    } else 0.0
+    val penalizacionVariabilidad = if (ahorroPromedio > 0) math.min(1.0, 1.0 - (desviacion / math.abs(ahorroPromedio) * 0.5)) else 1.0
+
+    // 2. Tendencia del ahorro
+    val tendencia = if (ahorrosMensuales.size > 1) {
+      val n = ahorrosMensuales.size
+      val x = (0 until n).map(_.toDouble)
+      val y = ahorrosMensuales
+      val sumX = x.sum
+      val sumY = y.sum
+      val sumXY = x.zip(y).map { case (xi, yi) => xi * yi }.sum
+      val sumX2 = x.map(xi => xi * xi).sum
+      val pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+      pendiente
+    } else 0.0
+    val factorTendencia = if (tendencia > 0) 1.0 + math.min(0.2, tendencia / math.abs(ahorroPromedio)) else 1.0
+
+    // 3. Penalización por atraso
+    val diasTotales = java.time.temporal.ChronoUnit.DAYS.between(meta.fechaInicio, meta.fechaLimite)
+    val diasTranscurridos = java.time.temporal.ChronoUnit.DAYS.between(meta.fechaInicio, java.time.LocalDate.now())
+    val progresoEsperado = if (diasTotales > 0) diasTranscurridos.toDouble / diasTotales else 1.0
+    val progresoReal = 1.0 - (montoRestante / meta.montoObjetivo)
+    val penalizacionAtraso = if (progresoReal < progresoEsperado) math.max(0.0, 1.0 - (progresoEsperado - progresoReal)) else 1.0
+
+    // Probabilidad final
+    val prob = ratio * penalizacionVariabilidad * factorTendencia * penalizacionAtraso
+    math.max(0.0, math.min(1.0, prob))
   }
   
   private def generarRecomendacionMeta(probabilidad: Double): String = {
@@ -227,13 +264,14 @@ class CProyecciones {
   
   private def calcularProbabilidadObjetivos(metas: List[Meta], movimientos: List[Movimiento]): Double = {
     val metasActivas = metas.filter(_.estaActivo)
-    if (metasActivas.isEmpty) return 0.0
-    
+    val metasCompletadas = metas.filter(!_.estaActivo)
+    if (metas.isEmpty) return -1.0 // N/A
+    if (metasActivas.isEmpty && metasCompletadas.nonEmpty) return 1.0
+    if (metasActivas.isEmpty) return -1.0 // N/A
     val probabilidades = metasActivas.map { meta =>
       val ahorroPromedio = calcularAhorroPromedio(movimientos)
       calcularProbabilidadMeta(meta, ahorroPromedio, movimientos)
     }
-    
     probabilidades.sum / probabilidades.size
   }
   

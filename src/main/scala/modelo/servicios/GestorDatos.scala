@@ -77,6 +77,24 @@ object GestorDatos {
     id
   }
   
+  def guardarUsuarios(usuarios: List[Usuario]): Unit = {
+    asegurarDirectorio()
+    guardarArchivo(archivoUsuarios, usuarios)
+  }
+
+  def cargarUsuarios(): List[Usuario] = {
+    cargarArchivo(archivoUsuarios, List.empty[Usuario])
+  }
+
+  def agregarUsuario(nuevoUsuario: Usuario): Unit = {
+    val usuarios = cargarUsuarios()
+    guardarUsuarios(usuarios :+ nuevoUsuario)
+  }
+
+  def buscarUsuarioPorIdentificacion(identificacion: String): Option[Usuario] = {
+    val usuarios = cargarUsuarios()
+    usuarios.find(u => u.username == identificacion || u.correos.contains(identificacion))
+  }
 
   def guardarPresupuestos(presupuestos: List[Presupuesto]): Unit = guardarArchivo(archivoPresupuestos, presupuestos)
 

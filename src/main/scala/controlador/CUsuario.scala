@@ -185,30 +185,24 @@ class CUsuario(private var vista: Either[LoginUI, RegistrarseUI]) {
         }
 
         try {
-          val usuario = GestorDatos.cargarUsuario()
-          if (usuario != null) {
-            val usuarioData = usuario
-            if (usuarioData.username != identificacion && !usuarioData.correos.contains(identificacion)) {
+          GestorDatos.buscarUsuarioPorIdentificacion(identificacion) match {
+            case Some(usuarioData) =>
+              val idUsuario = usuarioData.id
+              println(s"ID de usuario encontrado: $idUsuario")
+              if (!usuarioData.verificarContrasenia(contrasenia)) {
+                println("La contraseña no es válida, intenta de nuevo")
+                marcarCampoError(txtContrasenia)
+                return
+              }
+              resetearEstiloCampo(txtIdentificacion)
+              resetearEstiloCampo(txtContrasenia)
+              println(s"Ingresó el usuario ${usuarioData.nombre}")
+              val token = modelo.entidades.Token(idUsuario.toString, idUsuario)
+              GestorDatos.guardarToken(token)
+              loginVista.emitirSolicitarMostrarBienvenida()
+            case None =>
               println(s"No se encontró ningún usuario vinculado a: $identificacion")
               marcarCampoError(txtIdentificacion)
-              return
-            }
-            val idUsuario = usuarioData.id
-            println(s"ID de usuario encontrado: $idUsuario")
-            if (!usuarioData.verificarContrasenia(contrasenia)) {
-              println("La contraseña no es válida, intenta de nuevo")
-              marcarCampoError(txtContrasenia)
-              return
-            }
-            resetearEstiloCampo(txtIdentificacion)
-            resetearEstiloCampo(txtContrasenia)
-            println(s"Ingresó el usuario ${usuarioData.nombre}")
-            val token = modelo.entidades.Token(idUsuario.toString, idUsuario)
-            GestorDatos.guardarToken(token)
-            loginVista.emitirSolicitarMostrarBienvenida()
-          } else {
-            println("No se encontró ningún usuario registrado")
-            marcarCampoError(txtIdentificacion)
           }
         } catch {
           case e: Exception =>
@@ -276,7 +270,7 @@ class CUsuario(private var vista: Either[LoginUI, RegistrarseUI]) {
 
 
 
-        GestorDatos.guardarUsuario(nuevoUsuario)
+        GestorDatos.agregarUsuario(nuevoUsuario)
         GestorDatos.guardarPresupuestos(nuevoUsuario.presupuestos)
         GestorDatos.guardarCategorias(nuevoUsuario.categorias)
 

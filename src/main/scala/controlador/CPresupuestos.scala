@@ -47,7 +47,7 @@ class CPresupuestos(private val panelPresupuestos: PanelPresupuestos, private va
       
 
       GestorDatos.guardarPresupuestos(usuario.presupuestos)
-      GestorDatos.guardarUsuario(usuario)
+      actualizarUsuarioEnListaYGuardar()
       
 
       panelPresupuestos.mostrarPresupuestos(usuario.presupuestos, usuario.movimientos)
@@ -61,10 +61,16 @@ class CPresupuestos(private val panelPresupuestos: PanelPresupuestos, private va
     }
   }
 
+  private def actualizarUsuarioEnListaYGuardar(): Unit = {
+    val usuarios = GestorDatos.cargarUsuarios()
+    val usuariosActualizados = usuarios.map(u => if (u.id == usuario.id) usuario else u)
+    GestorDatos.guardarUsuarios(usuariosActualizados)
+  }
+
   private def finalizarOperacionCategoria(mensaje: String): Unit = {
     GestorDatos.guardarCategorias(usuario.categorias)
     GestorDatos.guardarPresupuestos(usuario.presupuestos)
-    GestorDatos.guardarUsuario(usuario)
+    actualizarUsuarioEnListaYGuardar()
     panelPresupuestos.mostrarPresupuestos(usuario.presupuestos, usuario.movimientos)
     JOptionPane.showMessageDialog(null, mensaje, "Éxito", JOptionPane.INFORMATION_MESSAGE)
   }
